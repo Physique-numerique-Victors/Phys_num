@@ -1,0 +1,13 @@
+alpha   = 1/2       % (1) explicit (0) implicit (1/2) semi-implicit
+tol     = 1e-4      % Tolerance for implicit convergence
+maxit   = 200       % Max iterations for (semi) implicit
+
+N0      = 0.        % initial population
+
+g       = 0.5       % 1-nu/gamma
+d       = 0.01      % normalised dreicer
+
+tf      = 32.       % final time
+dt      = 1.        % timestep
+
+sampling = 1
