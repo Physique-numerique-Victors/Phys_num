@@ -5,8 +5,8 @@ from scipy.interpolate import CubicSpline # If you don't have this, you can use 
 import os
 
 # Parameters
-repertoire =  '/Users/joro/Downloads/Exercice1_student/runaways/probleme/'
-executable = './engine' # Change this if your executable has a different name or path, like last week
+repertoire =  '/Users/joro/Documents/2025-2026/BA4/Physique\ numérique/Phys_num/Exercise1_student/runaways/problème'
+executable = '/engine' # Change this if your executable has a different name or path, like last week
 input_filename = repertoire + 'configuration.in.example'
 
 tf = 32
@@ -38,11 +38,11 @@ nsimul = len(dt)
 
 # Exact solution #TODO: Fill
 beta = np.sqrt(g*g+4*d)
-Nfp = (d+beta)/2 # steady state solution at t=inf
+Nfp = (g+beta)/2 # steady state solution at t=inf
 
 def N_anal(t):
     exp_term = np.exp(-beta*t)
-    return (beta+d)*(1-exp_term)/(2*(1+exp_term*(beta+g)/(beta-g)))
+    return (beta+g)*(1-exp_term)/(2*(1+exp_term*(beta+g)/(beta-g)))
 Nf = N_anal(tf)  # exact solution at tf
 
 Nr = 0.2  # fraction of equilibrium defining characteristic time
@@ -190,3 +190,5 @@ plt.ylabel("Relative error on tau")
 plt.grid(True, which="both", linestyle="--", linewidth=0.5)
 plt.tight_layout()
 plt.savefig(os.path.join(outdir, f"{figstr}_tau_error_vs_steps.png"), dpi=300)
+
+plt.show()
