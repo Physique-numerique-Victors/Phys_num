@@ -184,5 +184,3 @@ int main(int argc, char* argv[])
   cout << "Fin de la simulation." << endl;
   return 0;
 }
-
-

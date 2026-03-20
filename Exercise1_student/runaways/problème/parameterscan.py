@@ -6,15 +6,15 @@ import os
 
 # Parameters
 repertoire =  '/Users/joro/Documents/2025-2026/BA4/Physique\ numérique/Phys_num/Exercise1_student/runaways/problème'
-executable = '/engine' # Change this if your executable has a different name or path, like last week
-input_filename = repertoire + 'configuration.in.example'
+executable = '/engine2' # Change this if your executable has a different name or path, like last week
+input_filename = repertoire + '/configuration.in.example'
 
 tf = 32
 N0 = 0.0
 g = 0.5
 d = 0.01
 
-alpha = 1  # 1 explicit, 0 implicit, 0.5 semi-implicit
+alpha = 0 # 1 explicit, 0 implicit, 0.5 semi-implicit
 
 if alpha == 1:
     alphastr = "expl"
@@ -32,13 +32,15 @@ outdir = f"Outputs_g_{g:.2g}_d_{d:.2g}"
 os.makedirs(outdir, exist_ok=True)
 print("Saving results in:", outdir)
 # -------------------------------------------------
-
-dt = tf / 2**np.arange(2, 8) #TODO: Adjust for your needs
-nsimul = len(dt)
-
+dt = 1 #TODO: Adjust for your needs
+#nsimul = len(dt)
 # Exact solution #TODO: Fill
 beta = np.sqrt(g*g+4*d)
 Nfp = (g+beta)/2 # steady state solution at t=inf
+
+tol = np.logspace(-1, -12, 15)
+
+nsimul = len(tol)
 
 def N_anal(t):
     exp_term = np.exp(-beta*t)
@@ -56,8 +58,8 @@ N_exact = N_anal(t_ref)# exact solution as function of time
 ratio_exact = N_exact / Nfp
 #TODO: calculate tau_ref as the time when ratio_exact crosses Nr, using interpolation
 tau_ref = np.interp(Nr, N_exact/Nfp, t_ref)
-paramstr = 'dt'
-param = dt
+paramstr = 'tol'
+param = tol
 
 # Simulations
 outputs = []
@@ -69,7 +71,7 @@ error = np.zeros(nsimul)
 for i in range(nsimul):
     dt_val = param[i]  # current dt
 
-    output_file = f"{alphastr}_dt={dt_val:.15g}.out"
+    output_file = f"{alphastr}_tol={dt_val:.15g}.out"
     output_path = os.path.join(outdir, output_file)
     outputs.append(output_path)
     # Almost all parameters are passed as command line arguments, but you can also use an input file if you prefer. Adjust the command below accordingly.
@@ -83,7 +85,9 @@ for i in range(nsimul):
     subprocess.run(cmd, shell=True)
     print('Done.')
 
+
 error = np.zeros(nsimul)
+
 
 lw = 1.5
 fs = 16
@@ -123,7 +127,7 @@ for i in range(nsimul):
 
 
 plt.plot(t_ref, N_exact, 'k--', linewidth=2, label="Exact")
-axs.set_xlabel(r'$\overline{t}$', fontsize=fs)
+axs.set_xlabel(r'tolerance', fontsize=fs)
 axs.set_ylabel(r'$\overline{N}$', fontsize=fs)
 axs.set_xlim(0, tf)
 axs.set_ylim(0, Nf*1.2)
@@ -133,13 +137,13 @@ plt.tight_layout()
 plt.savefig(os.path.join(outdir, f"{figstr}_time.png"), dpi=300)
 
 # Error vs dt
-dtlist = dt
+tollist = tol
 
 plt.figure()
-plt.loglog(dtlist, error, 'r+-', label="numerical")
-plt.loglog(dtlist, dtlist/1e6, 'k--', label="O(dt)")
-plt.loglog(dtlist, dtlist**2/1e6, 'k-.', label="O(dt^2)")
-plt.xlabel(r"d$\overline{t}$")
+plt.loglog(tollist, error, 'r+-', label="numerical")
+plt.loglog(tollist, tollist/1e6, 'k--', label="O(dt)")
+plt.loglog(tollist, tollist**2/1e6, 'k-.', label="O(dt^2)")
+plt.xlabel(r"tolerance")
 plt.ylabel("Relative error on Nf")
 plt.legend()
 plt.grid(True)
@@ -148,9 +152,9 @@ plt.savefig(os.path.join(outdir, f"{figstr}_Nf_error.png"), dpi=300)
 
 # Convergence plot
 plt.figure()
-plt.plot(dtlist, N_list, 'r+-', label="numerical")
+plt.plot(tollist, N_list, 'r+-', label="numerical")
 plt.axhline(Nf, color='k', linestyle='--', label="Exact")
-plt.xlabel(r"d$\overline{t}$")
+plt.xlabel(r"tolerance")
 plt.ylabel(r"Final $\overline{N}$")
 plt.xscale('log')
 plt.grid(True)
@@ -158,10 +162,12 @@ plt.legend()
 plt.tight_layout()
 plt.savefig(os.path.join(outdir, f"{figstr}_Nf_conv.png"), dpi=300)
 
+tau_ref = 2.9943409481678906
+
 plt.figure()
-plt.plot(dtlist, tau_list, 'r+-', label="numerical")
+plt.plot(tollist, tau_list, 'r+-', label="numerical")
 plt.axhline(tau_ref, color='k', linestyle='--', label="Exact")
-plt.xlabel(r"d$\overline{t}$")
+plt.xlabel(r"tolerance")
 plt.ylabel(r"Characteristic time $\overline{\tau}$")
 plt.xscale('log')
 #plt.ylim(0, tf/10)  # Set y-limits to focus on the relevant range
@@ -173,10 +179,10 @@ plt.savefig(os.path.join(outdir, f"{figstr}_tau.png"), dpi=300)
 tau_err = np.abs(1 - np.array(tau_list) / tau_ref)
 
 plt.figure()
-plt.loglog(dtlist, tau_err, 'r+-', label="numerical")
-plt.loglog(dtlist, dtlist, 'k--', label="O(dt)")
-plt.loglog(dtlist, dtlist**2, 'k-.', label="O(dt^2)")
-plt.xlabel(r"d$\overline{t}$")
+plt.loglog(tollist, tau_err, 'r+-', label="numerical")
+plt.loglog(tollist, tollist, 'k--', label="O(dt)")
+plt.loglog(tollist, tollist**2, 'k-.', label="O(dt^2)")
+plt.xlabel(r"tolerance")
 plt.ylabel(r"Relative error on $\overline{\tau}$")
 plt.legend()
 plt.grid(True)
@@ -184,6 +190,7 @@ plt.tight_layout()
 plt.savefig(os.path.join(outdir, f"{figstr}_tau_error.png"), dpi=300)
 
 plt.figure()
+
 plt.loglog(totalsteps, tau_err, 'r+-', label=f"{alphastr}")
 plt.xlabel("Total steps")
 plt.ylabel("Relative error on tau")
