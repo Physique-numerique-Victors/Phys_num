@@ -1,0 +1,13 @@
+tf          = 2 // t final (overwritten if N >0)
+r           = 0.0
+kappa       = 0.00
+m           = 0.1
+L           = 0.2
+g           = 9.81
+Omega       = 2.
+theta0      = 1e-8
+thetadot0   = 0.
+output      = output.out
+sampling    = 1 //frequency of data writing
+N           = 0 // number of excitation periods
+nsteps      = 10000 //number of time steps per period (if N>0), number of timesteps total if N=0
