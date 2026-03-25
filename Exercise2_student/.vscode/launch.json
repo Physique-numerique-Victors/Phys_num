@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "/Users/victorgrosjean/Documents/Cours/ba4/P_num/Phys_num/Exercise2_student/rotatingpendulum/problème",
+      "program": "/Users/victorgrosjean/Documents/Cours/ba4/P_num/Phys_num/Exercise2_student/rotatingpendulum/problème/build/Debug/outDebug"
+    }
+  ]
+}
