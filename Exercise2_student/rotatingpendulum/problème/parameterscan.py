@@ -35,6 +35,7 @@ L = input_parameters['L']
 g = input_parameters['g']
 theta0 = input_parameters['theta0']
 thetadot0 = input_parameters['thetadot0']
+eps = 1E-2
 
 paramstr = 'nsteps' # The parameter to scan, must be one of the keys in input_parameters
 
@@ -68,6 +69,21 @@ def theta_calc(theta0, t) :
 theta_exact = theta_calc(theta0, t_ref)
 Emec_exact = Emec_calc(theta0, 0, 0)
 
+#Find the zeros of a list
+def find_zero(list, t):
+    times = []
+    zeros = []
+    for i in range(len(list)-1):
+        if list[i]*list[i+1] < 0 and list[i] > 0:
+            zeros.append(i)
+    for j in zeros:
+        a = (list[j+1]-list[j])/(t[j+1]-t[j])
+        b = (list[j]*t[j+1]-list[j+1]*t[j])/(t[j+1]-t[j])
+        times.append(-b/a)
+
+    return times 
+
+
 outputs = []
 totalsteps = []
 theta_list = []
@@ -75,6 +91,8 @@ thetadot_list = []
 Emec_list = []
 Pnc_list = []
 t_list = []
+T_list = []
+
 
 
 for i in range(len(nsteps_array)):
@@ -99,6 +117,8 @@ for i in range(len(nsteps_array)):
     subprocess.run(cmd, shell=True)
     print("Done.")
 
+error = np.zeros(nsimul)
+
 lw = 1.5
 fs = 16
 
@@ -116,6 +136,11 @@ for i in range(nsimul):
     Emec_list.append(Emec)
     Pnc_list.append(Pnc)
     t_list.append(t)
+
+    theta1 = find_zero(theta, t)[0]
+    theta2 = find_zero(theta, t)[1]
+    T_list.append(np.abs(theta2-theta1))
+    ############################################
 
     dt = tf / nsteps_array[i]
     plt.plot(t, theta, label=f"dt={dt:.2e}", linewidth=lw, alpha=0.7)
@@ -148,4 +173,36 @@ plt.grid(True)
 plt.tight_layout()
 figstr = "Energie_vs_t"
 plt.savefig(os.path.join(outdir, f"{figstr}.png"), dpi=300)
+
+########################################################################
+dtlist = tf / nsteps_array
+T_list = np.array(T_list)
+T_err = np.abs(T_exact - T_list) / T_exact
+
+plt.figure()
+plt.loglog(dtlist, T_err, 'r+-', label="numérique")
+#plt.loglog(dtlist, dtlist, 'k--', label="O(dt)")
+#plt.loglog(dtlist, dtlist**2, 'k-.', label="O(dt^2)")
+plt.xlabel(r"$dt$")
+plt.ylabel(r"Erreur relative sur $T$")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+figstr = "Error_on_energy_vs_dt"
+plt.savefig(os.path.join(outdir, f"{figstr}.png"), dpi=300)
+
+###################################################################
+
+plt.figure()
+plt.plot(dtlist, T_list, 'r+-', label="numérique")
+plt.axhline(T_exact, color='k', linestyle='--', label="Exacte")
+plt.xlabel(r"$dt$")
+plt.ylabel(r"$T$")
+plt.xscale('log')
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+figstr = "Energy_vs_dt"
+plt.savefig(os.path.join(outdir, f"{figstr}_tau.png"), dpi=300)
+
 plt.show()
