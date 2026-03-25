@@ -58,6 +58,9 @@ t_ref = np.linspace(0, tf, 200000)
 def Emec_calc(theta, thetadot, t) :
     return 0.5*m*np.power(L*thetadot,2) + m*g*L*(1-np.cos(theta))
 
+#Exact period
+T_exact = 2*np.pi*np.sqrt(L/g)
+
 def theta_calc(theta0, t) :
     w0 = np.sqrt(g/L)
     return theta0*np.cos(w0*t)
@@ -71,6 +74,7 @@ theta_list = []
 thetadot_list = []
 Emec_list = []
 Pnc_list = []
+t_list = []
 
 
 for i in range(len(nsteps_array)):
@@ -111,30 +115,37 @@ for i in range(nsimul):
     thetadot_list.append(thetadot)
     Emec_list.append(Emec)
     Pnc_list.append(Pnc)
+    t_list.append(t)
 
     dt = tf / nsteps_array[i]
-    axs.plot(t, theta, label=f"dt={dt:.2e}", linewidth=lw, alpha=0.7)
+    plt.plot(t, theta, label=f"dt={dt:.2e}", linewidth=lw, alpha=0.7)
 
 
-#ax1.axhline(y=Emec_exact, color='k', linestyle='--', linewidth=2, label="Exact")
-#ax1.set_xlabel(r'$\overline{t}$', fontsize=fs)
-#ax1.set_ylabel(r'$\overline{E}$', fontsize=fs)
-#ax1.set_xlim(0, tf)
-#axs.set_ylim(0, Nf*1.2)
-#plt.legend(fontsize=10)
-#plt.grid(True)
-#plt.tight_layout()
-#figstr = "Energie_vs_t"
-#plt.savefig(os.path.join(outdir, f"{figstr}_time.png"), dpi=300)
 
-axs.plot(t_ref, theta_exact, 'k--', linewidth=2, label="Exact")
-axs.set_xlabel(r't', fontsize=fs)
-axs.set_ylabel(r'$\Theta$', fontsize=fs)
-axs.set_xlim(0, tf)
-plt.legend(fontsize=10)
+plt.plot(t_ref, theta_exact, 'k--', linewidth=2, label="Exacte")
+plt.xlabel(r't', fontsize=fs)
+plt.ylabel(r'$\theta$', fontsize=fs)
+plt.xlim(0, tf)
+plt.legend(fontsize=10, loc = 'best')
 plt.grid(True)
 plt.tight_layout()
 figstr = "Theta_vs_t"
-plt.savefig(os.path.join(outdir, f"{figstr}_time.png"), dpi=300)
+plt.savefig(os.path.join(outdir, f"{figstr}.png"), dpi=300)
 
+########################################################################
+plt.figure()
+
+for i in range(nsimul):
+    dt = tf / nsteps_array[i]
+    plt.plot(t_list[i], Emec_list[i], label=f"dt={dt:.2e}", linewidth=lw, alpha=0.7)
+
+plt.axhline(y=Emec_exact, color='k', linestyle='--', linewidth=2, label="Exacte")
+plt.xlabel(r'$t$', fontsize=fs)
+plt.ylabel(r'$E_{m}$', fontsize=fs)
+plt.xlim(0, tf)
+plt.legend(fontsize=10, loc = 'best')
+plt.grid(True)
+plt.tight_layout()
+figstr = "Energie_vs_t"
+plt.savefig(os.path.join(outdir, f"{figstr}.png"), dpi=300)
 plt.show()
