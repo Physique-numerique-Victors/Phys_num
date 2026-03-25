@@ -24,7 +24,7 @@ private:
 
   double theta;
   double thetadot;
-  double F_theta;
+  //double F_theta;
   
 
   double t;  // Temps courant pas de temps
@@ -84,20 +84,19 @@ private:
 
   void step()
   {
+    //double F_thetadot = -kappa/m*thetadot;
 
+    double thetadot_half = thetadot + 0.5*compute_acc(theta, thetadot, t)*dt;
 
-
-    double F_thetadot = -kappa/m*thetadot;
-
-    double thetadot_half = thetadot + 0.5*(F_theta + F_thetadot)*dt;
-
-    double F_thetadot_half = -kappa/m*thetadot_half;
+    //double F_thetadot_half = -kappa/m*thetadot_half;
     double theta_1 = theta + thetadot_half*dt;
 
-    double F_theta_1 = compute_acc(theta_1, thetadot, t+dt) + kappa/m*thetadot;
+    //double F_theta_1 = compute_acc(theta_1, thetadot, t+dt) + kappa/m*thetadot;
+   //thetadot = thetadot + dt*F_theta/2 + dt*F_theta_1/2 + dt*F_thetadot_half/2;
 
-    thetadot = thetadot + dt*F_theta/2 + dt*F_theta_1/2 + dt*F_thetadot_half/2; 
-    F_theta = F_theta_1;
+    thetadot = thetadot + 0.5*(compute_acc(theta, thetadot_half, t) + compute_acc(theta_1, thetadot_half, t+dt))*dt;
+
+    //F_theta = F_theta_1;
     theta = theta_1;
 
     t += dt;
@@ -148,7 +147,7 @@ public:
       t = 0.;
       last = 0;
 
-      F_theta = compute_acc(theta, thetadot, t) + kappa/m*thetadot;
+      //F_theta = compute_acc(theta, thetadot, t) + kappa/m*thetadot;
 
       printOut(true);
 
