@@ -28,13 +28,14 @@ class Engine {
 
     //parametres de simulation
     double rho0; //densité de l'air au niveau de la mer
-    double mA; //masse de la sonde
+    double mA; //masse de Artemis
     double mL; //masse de la Lune
 
     double epsilon; //précision
     double t; //temps courant
     double dt; //pas de temps
     double tf; //temps de la simulation
+    bool adaptatif;
 
     //variable d'itération contenant les positions et vitesses des 3 corps
     valarray<double> y = std::valarray<double>(0.e0, numbodies*dimension*2);
@@ -44,11 +45,25 @@ class Engine {
     ofstream *outputFile;    // Pointeur vers le fichier de sortie
 
 
-    void printOut(bool write){}
+    void printOut(bool write){
+        if((!write && last>=sampling) || (write && last!=1))
+        {
+            double emec = Emec(); 
+            double p = p(); 
+            *outputFile << t << " " <<  y[ix(Art)] << " " <<  y[iy(Art)] << " " << emec << " " << p << endl;
+            last = 1;
+        }
+        else
+        {
+            last++;
+        }
+    }
 
     double Emec() const {} //Energie mécanique
 
-    double p() const {} //quantité de mouvement
+    double p() const {return mA*sqrt(pow(y[ivx(Art)],2) + pow(y[ivy(Art)]))} //quantité de mouvement
+
+   
 
     void step(){}
 
@@ -66,8 +81,23 @@ class Engine {
         mL = configFile.get<double>("mL", mL);
         dt = configFile.get<double>("dt",dt);
         tf = configFile.get<double>("tf",tf);
-        y = configFile.get<double>("",);
-        = configFile.get<double>("",);
+        y[ix(Terre)] = configFile.get<double>("xT",xT);
+        y[iy(Terre)] = configFile.get<double>("yT",yT);
+        y[ivx(Terre)] = configFile.get<double>("vxT",vxT);
+        y[ivy(Terre)] = configFile.get<double>("vyT",vyT);
+        y[ix(Lune)] = configFile.get<double>("xL",xL);
+        y[iy(Lune)] = configFile.get<double>("yL",yL);
+        y[ivx(Lune)] = configFile.get<double>("vxL",vxL);
+        y[ivy(Lune)] = configFile.get<double>("vyL",vyL);
+        y[ix(Art)] = configFile.get<double>("xA",xA);
+        y[iy(Art)] = configFile.get<double>("yA",yA);
+        y[ivx(Art)] = configFile.get<double>("vxA",vxA);
+        y[ivy(Art)] = configFile.get<double>("vyA",vyA);
+        sampling = configFile.get<double>("sampling", sampling)
+
+        //Ouverture du fichier de sortie
+        outputFile = new ofstream(configFile.get<string>("output").c_str());
+        outputFile->precision(15);
 
 
     };
@@ -77,7 +107,18 @@ class Engine {
         delete outputFile;
     };
 
-    void run() {};
+    void run() {
+        t = 0;
+        last = 0;
+
+        printOut(true);
+
+        while(t < tf-0.5*dt){
+            step();
+            printOut(false);
+        }
+        printOut(true);
+    };
 };
 
 
