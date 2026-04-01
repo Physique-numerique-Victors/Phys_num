@@ -16,12 +16,18 @@ class Engine {
     static constexpr double lambda = 7232.2; //épaisseur caractéristique
     static constexpr double Cx = 0.3; // coefficient de traînée
     static constexpr double mT =5,972*1e24; //masse de la Terre
+    static constexpr double dA = 5.02; //diamètre de la sonde
     static constexpr double pi 3.1415926535897932384626433832795028841971e0; 
+    static constexpr size_t Terre = 0; //indice de la Terre dans y
+    static constexpr size_t Lune = 1; //indice de la Lune dans y
+    static constexpr size_t Art = 2; //indice de Artemis dans y
+    static constexpr numbodies = 3; //nombre de corps
+    static constexpr dimension = 2; //dimension du problème
+
 
 
     //parametres de simulation
     double rho0; //densité de l'air au niveau de la mer
-    double dA; //diamètre de la sonde
     double mA; //masse de la sonde
     double mL; //masse de la Lune
 
@@ -31,7 +37,7 @@ class Engine {
     double tf; //temps de la simulation
 
     //variable d'itération contenant les positions et vitesses des 3 corps
-    valarray<double> y = std::valarray<double>(0.e0, 12);
+    valarray<double> y = std::valarray<double>(0.e0, numbodies*dimension*2);
 
     unsigned int sampling;  // Nombre de pas de temps entre chaque ecriture des diagnostics
     unsigned int last;       // Nombre de pas de temps depuis la derniere ecriture des diagnostics
@@ -40,15 +46,31 @@ class Engine {
 
     void printOut(bool write){}
 
-    double Emec(){} //Energie mécanique
+    double Emec() const {} //Energie mécanique
 
-    double p() {} //quantité de mouvement
+    double p() const {} //quantité de mouvement
 
     void step(){}
 
+    size_t ix(size_t i) const { return 2 * i; }
+    size_t iy(size_t i) const { return 2 * i + 1; }
+    size_t ivx(size_t i) const { return 2 * numBodies + 2 * i; }
+    size_t ivy(size_t i) const { return 2 * numBodies + 2 * i + 1; }
+
+
     public:
 
-    Engine(ConfigFile configFile) {};
+    Engine(ConfigFile configFile) {
+        rho0 = configFile.get<double>("rho0", rho0);
+        mA = configFile.get<double>("mA", mA);
+        mL = configFile.get<double>("mL", mL);
+        dt = configFile.get<double>("dt",dt);
+        tf = configFile.get<double>("tf",tf);
+        y = configFile.get<double>("",);
+        = configFile.get<double>("",);
+
+
+    };
 
     virtual ~Engine(){
         outputFile->close();
