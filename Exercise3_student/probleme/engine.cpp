@@ -48,8 +48,11 @@ class Engine {
     void printOut(bool write){
         if((!write && last>=sampling) || (write && last!=1))
         {
-            double emec = Emec(); 
-            double p = p(); 
+            valarray<double> rA = valarray<double> (y[ix(Art)], y[iy(Art)]);
+            valarray<double> vA = valarray<double> (y[ivx(Art)], y[ivy(Art)]);
+
+            double emec = Emec(rA, vA, mA); 
+            double p = p(vA, mA); 
             *outputFile << t << " " <<  y[ix(Art)] << " " <<  y[iy(Art)] << " " << emec << " " << p << endl;
             last = 1;
         }
@@ -59,37 +62,50 @@ class Engine {
         }
     }
 
-    double Emec() const {} //Energie mécanique
+    double Emec(const valarray<double>& r, const valarray<double>& v, double m) const { //Energie mécanique
+        return 0.5*pow(p(v,m),2)/m - G*mT*m/norm(r);
+    } 
 
-    double p() const {return mA*sqrt(pow(y[ivx(Art)],2) + pow(y[ivy(Art)]))} //quantité de mouvement
+    double p(const valarray<double>& v, double m) const { //quantité de mouvement
+        return m*norm(v);
+    } 
 
     size_t ix(size_t i) const { return 2 * i; }
     size_t iy(size_t i) const { return 2 * i + 1; }
     size_t ivx(size_t i) const { return 2 * numBodies + 2 * i; }
     size_t ivy(size_t i) const { return 2 * numBodies + 2 * i + 1; }
 
+    double norm(const valarray<double>& v) {return sqrt(pow(v[0],2) + pow(v[1],2));} //norme de vecteurs de deux dimensions
+
+    double Fg(const valarray<double>& r) const { return -G*mT*r/(pow(norm(r),3)); } //Force gravitationnelle
+
+    double rho(const valarray<double>& r) const {return rho0*exp(-r/lambda);}
+    double Ft(const valarray<double>& r, const valarray<double>& v) const { return -0.5*rho(r)*pi*pow(dA*O.5,2)*Cx*norm(v)*v;} //Force de trainée aérodynamique
+
     void compute_f(valarray<double>& f)const {
         //evolution de la lune
-        valarray<double> r L= valarray<double> (y[ix(1)], y[iy(1)]);
-        valarray<double> vL = valarray<double> (y[ivx(1)], y[ivy(1)]);
+        valarray<double> rL = valarray<double> (y[ix(Lune)], y[iy(Lune)]);
+        valarray<double> vL = valarray<double> (y[ivx(Lune)], y[ivy(Lune)]);
+        valarray<double> rT = valarray<double> (y[ix(Terre)], y[iy(Terre)]);
 
-        vL_after = -G*mT*rL/(np.linalg.norm(rL)**3);
 
-        f[[ix(1)]] = vL[0];
-        f[[iy(1)]] = vL[1];
-        f[ivx(1)] = vl_after[0];
-        f[ivx(1)] = vl_after[1];
+        valarray<double> vL_after = Fg(rT-rL) + Ft(rL-rT, vL-vT);
+
+        f[[ix(Lune)]] = vL[0];
+        f[[iy(Lune)]] = vL[1];
+        f[ivx(Lune)] = vl_after[0];
+        f[ivx(Lune)] = vl_after[1];
 
         //evolution d'Artemis
-        valarray<double> rA = valarray<double> (y[ix(1)], y[iy(1)]);
-        valarray<double> vA = valarray<double> (y[ivx(1)], y[ivy(1)]);
+        valarray<double> rA = valarray<double> (y[ix(Art)], y[iy(Art)]);
+        valarray<double> vA = valarray<double> (y[ivx(Art)], y[ivy(Art)]);
 
-        vA_after = -G*mT*rA/(np.linalg.norm(rA)**3);
+        valarray<double> vA_after = Fg(rT-rA) + Ft(rA-rT, vA-vT);
 
-        f[[ix(1)]] = vA[0];
-        f[[iy(1)]] = vA[1];
-        f[ivx(1)] = vA_after[0];
-        f[ivx(1)] = vA_after[1];
+        f[[ix(Art)]] = vA[0];
+        f[[iy(Art)]] = vA[1];
+        f[ivx(Art)] = vA_after[0];
+        f[ivx(Art)] = vA_after[1];
 
     }
 
