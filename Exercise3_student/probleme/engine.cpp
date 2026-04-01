@@ -63,15 +63,56 @@ class Engine {
 
     double p() const {return mA*sqrt(pow(y[ivx(Art)],2) + pow(y[ivy(Art)]))} //quantité de mouvement
 
-   
-
-    void step(){}
-
     size_t ix(size_t i) const { return 2 * i; }
     size_t iy(size_t i) const { return 2 * i + 1; }
     size_t ivx(size_t i) const { return 2 * numBodies + 2 * i; }
     size_t ivy(size_t i) const { return 2 * numBodies + 2 * i + 1; }
 
+    void compute_f(valarray<double>& f)const {
+        //evolution de la lune
+        valarray<double> r L= valarray<double> (y[ix(1)], y[iy(1)]);
+        valarray<double> vL = valarray<double> (y[ivx(1)], y[ivy(1)]);
+
+        vL_after = -G*mT*rL/(np.linalg.norm(rL)**3);
+
+        f[[ix(1)]] = vL[0];
+        f[[iy(1)]] = vL[1];
+        f[ivx(1)] = vl_after[0];
+        f[ivx(1)] = vl_after[1];
+
+        //evolution d'Artemis
+        valarray<double> rA = valarray<double> (y[ix(1)], y[iy(1)]);
+        valarray<double> vA = valarray<double> (y[ivx(1)], y[ivy(1)]);
+
+        vA_after = -G*mT*rA/(np.linalg.norm(rA)**3);
+
+        f[[ix(1)]] = vA[0];
+        f[[iy(1)]] = vA[1];
+        f[ivx(1)] = vA_after[0];
+        f[ivx(1)] = vA_after[1];
+
+    }
+
+    void step(){
+        valarray<double> f =valarray<double>(0.e0,12); 
+
+        compute_f(f);
+        valarray<double> k1 = f;
+
+        y += 0.5*k1;
+        compute_f(f);
+        valarray<double> k2 = f;
+
+        y += -0.5*k1 + 0.5*k2;
+        compute_f(f);
+        valarray<double> k3 = f;
+
+        y += -0.5*k2 + k3
+        compute_f(f);
+        valarray<double> k4 = f;
+
+        y += -k3 + dt*(1.0/6)*(k1+2*k2+2*k3+k4);
+    }
 
     public:
 
