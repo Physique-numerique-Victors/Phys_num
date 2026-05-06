@@ -52,7 +52,16 @@ class Engine {
     void printOut(bool write){
         if((!write && last>=sampling) || (write && last!=1))
         {
-            *outputFile << t << " " <<  y[ix(Art)] << " " <<  y[iy(Art)] << " " << y[ivx(Art)] << " " << y[ivy(Art)] << " " << dt << " " << norm(acc_Artemis()) << " " << Pt_Art() << endl;
+            valarray<double> y_inG = in_G();
+            *outputFile << t << " ";
+
+            for (int i=0; i <3; i++) {
+
+                  *outputFile <<  y_inG[ix(i)] << " " <<  y_inG[iy(i)] << " " << y_inG[ivx(i)] << " " << y_inG[ivy(i)] << " ";
+
+            }
+            *outputFile << dt << " " << norm(acc_Artemis_inG()) << " " << Pt_Art_inG()  << endl;
+           
             last = 1;
         }
         else
@@ -61,29 +70,48 @@ class Engine {
         }
     }
     double norm(const valarray<double>& V) const {return sqrt(pow(V[0] , 2) + pow(V[1] , 2));} //norme de vecteurs de deux dimensions
+    
+    valarray<double> in_G() const{ //convertit le vecteur y dans le référentiel du centre de masse G M
+        valarray<double> rG = (m[Terre]*r(Terre, y)+m[Lune]*r(Lune, y))/(m[Terre]+m[Lune]);
+        valarray<double> vG = (m[Terre]*v(Terre, y)+m[Lune]*v(Lune, y))/(m[Terre]+m[Lune]);
+        valarray<double> rT_inG = r(Terre, y) - rG; valarray<double> rL_inG = r(Lune, y) - rG; valarray<double> rA_inG = r(Art, y) - rG;
+        valarray<double> vT_inG = v(Terre, y) - vG; valarray<double> vL_inG = v(Lune, y) - vG; valarray<double> vA_inG = v(Art, y) - vG;
 
-    double EmecArt() const { //Energie mécanique d'Artemis
-        return 0.5 * m[Art] * pow(norm(v(Art, y) - v(Terre, y)), 2) - G * m[Terre] * m[Art] / norm(r(Art, y) - r(Terre, y)) - G * m[Lune] * m[Art] / norm(r(Art, y) - r(Lune, y));
+        valarray<double> y_inG(numbodies * dimension * 2);
+
+        y_inG[slice(0, dimension, 1)] = rT_inG; y_inG[slice(2, dimension, 1)] = rL_inG; y_inG[slice(4, dimension, 1)] = rA_inG;
+        y_inG[slice(6, dimension, 1)] = vT_inG; y_inG[slice(8, dimension, 1)] = vL_inG; y_inG[slice(10, dimension, 1)] = vA_inG;
+
+        return y_inG;
+    }
+
+    double EmecArt_inG() const { //Energie mécanique d'Artemis
+        valarray<double> y_inG = in_G();
+        return 0.5 * m[Art] * pow(norm(v(Art, y_inG)), 2) - G * m[Terre] * m[Art] / norm(r(Art, y_inG) - r(Terre, y_inG)) - G * m[Lune] * m[Art] / norm(r(Art, y_inG) - r(Lune, y_inG));
     } 
 
     double p(const valarray<double>& v, double m) const { //quantité de mouvement normée
         return m*norm(v);
-    } 
+    }
 
-    valarray<double> acc_Artemis() const {
-        valarray<double> rT = r(Terre, y);
-        valarray<double> vT = v(Terre, y);
-        valarray<double> rL = r(Lune, y);
-        valarray<double> rA = r(Art, y);
-        valarray<double> vA = v(Art, y);
+    valarray<double> acc_Artemis_inG() const {
+        valarray<double> y_inG = in_G();
+
+        valarray<double> rT = r(Terre, y_inG);
+        valarray<double> vT = v(Terre, y_inG);
+        valarray<double> rL = r(Lune, y_inG);
+        valarray<double> rA = r(Art, y_inG);
+        valarray<double> vA = v(Art, y_inG);
 
         return acc_grav(rA, rT, m[Terre]) + Ft(rA-rT, vA-vT)/m[Art] + acc_grav(rA, rL, m[Lune]);
     }
 
-    double Pt_Art() const {
-        valarray<double> rT = r(Terre, y);
-        valarray<double> rA = r(Art, y);
-        valarray<double> vrel = v(Art, y) - v(Terre, y);
+    double Pt_Art_inG() const {
+        valarray<double> y_inG = in_G();
+
+        valarray<double> rT = r(Terre, y_inG);
+        valarray<double> rA = r(Art, y_inG);
+        valarray<double> vrel = v(Art, y_inG) - v(Terre, y_inG);
         valarray<double> Fdrag = Ft(rA - rT, vrel);
 
         return (Fdrag * vrel).sum();
@@ -104,41 +132,20 @@ class Engine {
     valarray<double> Ft(const valarray<double>& r, const valarray<double>& v) const { return -0.5 * rho(r) * pi * pow(R[Art], 2) * Cx * norm(v) * v;} //Force de trainée aérodynamique
 
     void compute_f(const valarray<double>& y_, valarray<double>& df) const {
-        valarray<double> rT = r(Terre, y_);
-        valarray<double> vT = v(Terre, y_);
-        valarray<double> rL = r(Lune, y_);
-        valarray<double> vL = v(Lune, y_);
-        valarray<double> rA = r(Art, y_);
-        valarray<double> vA = v(Art, y_);
+        valarray<valarray<double>> tab = {r(Terre, y_), v(Terre, y_), r(Lune, y_), v(Lune, y_), r(Art, y_), v(Art, y_)};
 
-        //evolution de la Terre
+        for (int i = 0; i<=2; i++) {
+            valarray<double> v_after = acc_grav(tab[i*2], tab[((i+1)%3*2)], m[(i+1)%3]) + acc_grav(tab[i*2], tab[((i+2)%3)*2], m[(i+2)%3]); // calcule v_after correspondant à l'indice i
 
-        valarray<double> vT_after = acc_grav(rT, rL, m[Lune]) + acc_grav(rT, rA, m[Art]);
+            if (i == Art) {
+                v_after += Ft(tab[i*2]-tab[0], tab[i*2+1]-tab[1])/m[Art];
+            }
 
-        df[ix(Terre)] = vT[0];
-        df[iy(Terre)] = vT[1];
-        df[ivx(Terre)] = vT_after[0];
-        df[ivy(Terre)] = vT_after[1];
-
-
-        //evolution de la Lune
-
-        valarray<double> vL_after = acc_grav(rL, rT, m[Terre]) + acc_grav(rL, rA, m[Art]);
-
-        df[ix(Lune)] = vL[0];
-        df[iy(Lune)] = vL[1];
-        df[ivx(Lune)] = vL_after[0];
-        df[ivy(Lune)] = vL_after[1];
-
-        //evolution d'Artemis
-        
-        valarray<double> vA_after= acc_grav(rA, rT, m[Terre]) + Ft(rA-rT, vA-vT)/m[Art] + acc_grav(rA, rL, m[Lune]);
-
-        df[ix(Art)] = vA[0];
-        df[iy(Art)] = vA[1];
-        df[ivx(Art)] = vA_after[0];
-        df[ivy(Art)] = vA_after[1];
-
+            df[ix(i)] = tab[i*2+1][0];
+            df[iy(i)] = tab[i*2+1][1];
+            df[ivx(i)] = v_after[0];
+            df[ivy(i)] = v_after[1];
+        }
     }
 
 valarray<double> rk4Step(double step, const valarray<double>& y0){
@@ -214,28 +221,32 @@ valarray<double> rk4Step(double step, const valarray<double>& y0){
                 bool step_accepted = false;
 
                 while (!step_accepted) {
-                     double error = 0.0;
-
                     valarray<double> y1 = rk4Step(dt, y);
                     valarray<double> y2 = rk4Step(dt*0.5, rk4Step(dt*0.5, y));
 
+                    double d = 0;
+
                     for(size_t i = 0; i < y.size(); ++i){
-                        error += pow(y1[i] - y2[i], 2);
+                        d += pow(y1[i]-y2[i], 2);
+                        //error += pow(y1[i] - y2[i], 2);
                     }
+                    d = sqrt(d);
+                    double f = 0.95;
+                    double dt_new;
 
-                    error =sqrt(error);
-                    if (error <= epsilon) {
+                    if (d < 1e-6*epsilon) {
+                        dt_new = dt*2;
+                    }
+                    else {
+                        dt_new = dt * pow(epsilon/d, 1.0/5.0);
+                    }
+                    if (d <= epsilon) {
                         y = y2;
-                        step_accepted = true;
                         t += dt;
-
-                        // Si l'erreur est très petite, on peut augmenter le pas de temps pour accélérer la simulation
-                        if (error < epsilon * 0.1) {
-                            dt *= 2.0;
-                        }
-
+                        dt = dt_new;
+                        step_accepted = true;
                     } else {
-                        dt *= 0.5;
+                        dt = f*dt_new;
                     }
                 }
                 
@@ -279,9 +290,3 @@ int main(int argc, char* argv[])
   cout << "Fin de la simulation." << endl;
   return 0;
 }
-
-
-
-
-
-

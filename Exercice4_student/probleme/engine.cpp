@@ -43,7 +43,7 @@ double epsilon_r(double r, double b, double R, bool trivial=true)
     if (!trivial) {
         if (r>=0 and r <b) {
             return 1;
-        } elif (r>=b and r<=R) {
+        } else if (r>=b and r<=R) {
             return 3+ 6*(r-b)/(R-b);
         }
     }
@@ -52,12 +52,12 @@ double epsilon_r(double r, double b, double R, bool trivial=true)
 
 // TODO: Implement the normalised free charge density rho_lib(r) / epsilon_0.
 //       Should allow for a trivial test case (trivial=true) 
-double rho_lib(double r, double b, double a0, boo trivial)
+double rho_lib(double r, double b, double a0, bool trivial=true)
 {
     if (!trivial) {
         if (r>=0 and r<=b) {
             return a0*sin(PI*r/b);
-        } elif (r>b and r<=R) {
+        } else if (r>b and r<=R) {
             return 0;
         }
     }
@@ -104,8 +104,8 @@ int main(int argc, char* argv[])
     for (int i=0; i<N1; i++) {
         r[i] = i*h1;
     }
-    for (int j=N1; i<N2; j++) {
-        r[j] = j*h2;
+    for (int j=N1; j<npoints; j++) {
+        r[j] = b + (j-N1)*h2;
     }
 
     vector<double> h(ninters);  // Interval widths
@@ -113,14 +113,14 @@ int main(int argc, char* argv[])
     for (int i=0; i<N1-1; i++) {
         h[i] = h1;
     }
-    for (int j=N1-1; i<N2-1; j++) {
+    for (int j=N1-1; j<ninters; j++) {
         h[j] = h2;
     }
 
     vector<double> midPoint(ninters);    // Midpoints of each interval
     // TODO: fill h[i]  and  midPoint[i]
-    for (int i=0; i<=ninters; i++) {
-        midPoint[i] = r[i+1]-r[i]
+    for (int i=0; i<ninters; i++) {
+        midPoint[i] = (r[i+1]+r[i])/2;
     }
 
     // ---------------------------------------------------------------
@@ -131,13 +131,30 @@ int main(int argc, char* argv[])
     vector<double> upper(ninters, 0.0);  // Super-diagonal (upper[i] links row i to col i+1)
     vector<double> rhs(npoints, 0.0);    // Right-hand side
 
+    double alpha(0);
+    double beta(0);
+
     for (int k = 0; k < ninters; ++k) {
         // TODO: compute alpha_k and beta_k
+        alpha = epsilon_r(midPoint[k], b, R, trivial)*midPoint[k]/h[k];
+        beta = rho_lib(midPoint[k], b, a0, trivial)*midPoint[k]*h[k]/2; 
+
+        rhs[k] += beta;
+        rhs[k+1] += beta;
+
+        diag[k] -= alpha;
+        diag[k+1] = alpha;
+
+        upper[k] = alpha;
+        lower[k] = upper[k];
+
         //       then add their contributions to diag, lower, upper, and rhs
     }
-
+    
     // TODO: enforce the Dirichlet BC at r = R
-
+    rhs[npoints-1] = V0;
+    lower[ninters-1] = 0;
+    diag[npoints-1] = 1;
     // ---------------------------------------------------------------
     // Solve the linear system
     // ---------------------------------------------------------------
@@ -151,7 +168,9 @@ int main(int argc, char* argv[])
     vector<double> Dr(ninters, 0.0);
     for (int k = 0; k < ninters; ++k) {
         rmid[k] = midPoint[k];
-        // TODO: compute Er[k] and Dr[k] 
+        // TODO: compute Er[k] and Dr[k]
+        Er[k] = -(phi[k+1]-phi[k])/h[k];
+        Dr[k]= Er[k]*epsilon_r(rmid[k], b, R, trivial);
     }
 
     // ---------------------------------------------------------------
@@ -164,6 +183,8 @@ int main(int argc, char* argv[])
     for (int k = 0; k < ninters - 1; ++k) {
         rmidmid[k] = 0.5 * (rmid[k] + rmid[k + 1]);
         // TODO: compute div_Dr[k] and rho_at_midmid[k]
+        div_Dr[k] = (1/rmidmid[k])*(rmid[k+1]*Dr[k+1]-rmid[k]*Dr[k])/(rmid[k+1]-rmid[k]);
+        rho_at_midmid[k] = rho_lib(rmidmid[k], b, a0, trivial);
     }
 
     // ---------------------------------------------------------------
